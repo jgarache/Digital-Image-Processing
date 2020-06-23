@@ -1,0 +1,254 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>hough_transform</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-01"><meta name="DC.source" content="hough_transform.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> [theta_out, rho_out, accumulator] = hough_transform(i_edge)
+<span class="comment">%hough_transform Determine the rho and theta values of an edged detected</span>
+<span class="comment">%                image to create a sinsoidal graph representing which</span>
+<span class="comment">%                common points were calculated and lines detected within</span>
+<span class="comment">%                the image</span>
+<span class="comment">%</span>
+<span class="comment">%Syntax:</span>
+<span class="comment">%       output = [theta_out, rho_out, accumulator]</span>
+<span class="comment">%</span>
+<span class="comment">%Input:</span>
+<span class="comment">%       input = i_edge</span>
+<span class="comment">%</span>
+<span class="comment">%Output:</span>
+<span class="comment">%       output = greatest theta and rho pair inside of the accumulator</span>
+<span class="comment">%       along with the accumulator itself</span>
+<span class="comment">%</span>
+<span class="comment">%History:</span>
+<span class="comment">%       J.Garache created and completed 11/30/2017</span>
+<span class="comment">%</span>
+
+    <span class="comment">%rows and columns of input image</span>
+	M = size(i_edge,1);
+    N = size(i_edge,2);
+
+    <span class="comment">%diagnoal of input image</span>
+    D = sqrt(M.^2 + N.^2);
+
+    <span class="comment">%rounds to accomodate whole numbers</span>
+    D = round(D);
+
+    <span class="comment">%accumulator with rows and columns of diagnoal of input image</span>
+    <span class="comment">%and 180 columns</span>
+    accumulator = zeros([2*D+1 180]);
+
+    <span class="comment">%initializing theta rho highest value to find maximum value in</span>
+    <span class="comment">%accumulator</span>
+    theta_out = 0;
+    rho_out = 0;
+    highest_value = 0;
+
+    <span class="comment">%hough transform algorithm</span>
+    <span class="keyword">for</span> i = 1:M
+        <span class="keyword">for</span> j =1:N
+
+            <span class="comment">%detects a white pixel in i_edge</span>
+            <span class="keyword">if</span>(i_edge(i,j) == 255)
+
+                <span class="comment">%theta values from -89 to 90</span>
+                <span class="keyword">for</span> theta = -89:90
+
+                    <span class="comment">%calculate rho with normal equation</span>
+                    rho = i*cosd(theta)+j*sind(theta);
+
+                    <span class="comment">%accomodates rounding</span>
+                    rho = round(rho);
+
+                    <span class="comment">%save occurances of calculated rho,theta pair</span>
+                    <span class="comment">%when saved it needs to be saved in a positive value</span>
+                    <span class="comment">%inside accumulator. Accumulator(-89,anything) doesn't</span>
+                    <span class="comment">%exist so the following needs to be done:</span>
+                    <span class="comment">%rho+D+1 because rho goes from -D to D</span>
+                    <span class="comment">%theta+90 becuase theta goes from -89 to 90</span>
+                    accumulator(rho+D+1,theta+90) = accumulator(rho+D+1,theta+90) + 1;
+
+                <span class="keyword">end</span>
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+    <span class="comment">%find maximum value within accumulator</span>
+    <span class="keyword">for</span> i = 1: size(accumulator,1)
+        <span class="keyword">for</span> j = 1: size(accumulator,2)
+
+            <span class="comment">%compare values to highest_value</span>
+            <span class="keyword">if</span>( accumulator(i,j) &gt; highest_value)
+
+                <span class="comment">%set corresponding values to output</span>
+                highest_value = accumulator(i,j);
+
+                <span class="comment">%revert value back to its original value prior to chaning</span>
+                <span class="comment">%it with theta+90 and rho+d+1</span>
+                theta_out = j-90;
+                rho_out = i-D-1;
+
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><pre class="codeoutput error">Not enough input arguments.
+
+Error in hough_transform (line 22)
+	M = size(i_edge,1); 
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+function [theta_out, rho_out, accumulator] = hough_transform(i_edge)
+%hough_transform Determine the rho and theta values of an edged detected
+%                image to create a sinsoidal graph representing which
+%                common points were calculated and lines detected within
+%                the image
+%
+%Syntax:
+%       output = [theta_out, rho_out, accumulator]
+%
+%Input:
+%       input = i_edge
+%
+%Output:
+%       output = greatest theta and rho pair inside of the accumulator
+%       along with the accumulator itself
+%
+%History:
+%       J.Garache created and completed 11/30/2017
+%        
+
+    %rows and columns of input image
+	M = size(i_edge,1); 
+    N = size(i_edge,2);
+    
+    %diagnoal of input image
+    D = sqrt(M.^2 + N.^2);
+    
+    %rounds to accomodate whole numbers
+    D = round(D);
+    
+    %accumulator with rows and columns of diagnoal of input image
+    %and 180 columns
+    accumulator = zeros([2*D+1 180]);
+    
+    %initializing theta rho highest value to find maximum value in
+    %accumulator
+    theta_out = 0;
+    rho_out = 0;
+    highest_value = 0;
+    
+    %hough transform algorithm
+    for i = 1:M
+        for j =1:N
+            
+            %detects a white pixel in i_edge
+            if(i_edge(i,j) == 255)
+                
+                %theta values from -89 to 90
+                for theta = -89:90
+                    
+                    %calculate rho with normal equation
+                    rho = i*cosd(theta)+j*sind(theta);
+                    
+                    %accomodates rounding
+                    rho = round(rho);
+                    
+                    %save occurances of calculated rho,theta pair
+                    %when saved it needs to be saved in a positive value
+                    %inside accumulator. Accumulator(-89,anything) doesn't
+                    %exist so the following needs to be done:
+                    %rho+D+1 because rho goes from -D to D
+                    %theta+90 becuase theta goes from -89 to 90
+                    accumulator(rho+D+1,theta+90) = accumulator(rho+D+1,theta+90) + 1;
+                    
+                end 
+            end
+        end
+    end
+    
+    %find maximum value within accumulator
+    for i = 1: size(accumulator,1)
+        for j = 1: size(accumulator,2)
+            
+            %compare values to highest_value
+            if( accumulator(i,j) > highest_value)
+            
+                %set corresponding values to output
+                highest_value = accumulator(i,j);
+                
+                %revert value back to its original value prior to chaning
+                %it with theta+90 and rho+d+1
+                theta_out = j-90;
+                rho_out = i-D-1;
+            
+            end
+        end
+    end
+    
+end
+##### SOURCE END #####
+--></body></html>
